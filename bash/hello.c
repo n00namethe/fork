@@ -4,38 +4,65 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#define MY_PRINTF(...) printf("[%d] ", getpid());\
+#define MY_PRINTF(...) printf("[%d]", getpid());\
 (printf(__VA_ARGS__))
 
-
-int main()
+int cancel(int arg1, int arg2)
 {
-	int stat = 0;
+	int stat = -1;
+	MY_PRINTF("ребенок. Делить на 0 нельзя. Будет передано: %d\n", stat);
+	return stat;
+}
+
+int complit(char const *arg1, char const *arg2)
+{
+	if (execl("exec", "hello", arg1, arg2, NULL) == -1)
+	{
+		perror("exec error!");
+	}
+}
+
+int main(int argc, char const *argv[3])
+{
+	if (argc > 3)
+	{
+		printf("Превышено число аргументов");
+		return 0;
+	}
+	int status;
 	pid_t par, ch;
 	par = getpid();
 	ch = fork();
 	if (ch == -1)
 	{
 		perror("error with ch");
-   		exit(1);
+   		exit(EXIT_FAILURE);
 	}
 	if (ch == 0)
 	{
-		MY_PRINTF("Я ребенок, мой PID: \n");
-		execl("exec", "hello", "15", "15", NULL);
-		exit(stat);
-	}
-	else
-	{
-		wait(NULL);
-		MY_PRINTF("Я родитель, мой PID: \n");
-		if (WIFEXITED(stat) != 0)
+		MY_PRINTF(":Child PID \n");
+		if ((atoi(argv[1]) == 0) || (atoi(argv[2]) == 0))
 		{
-			MY_PRINTF("exit status: %d\n", WEXITSTATUS(stat));
+			int stat = cancel(atoi(argv[1]), atoi(argv[2]));
+			printf("return error: %d\n", stat);
+			return stat;
 		}
 		else
 		{
-			printf("something went wrong\n");
+			complit(argv[1], argv[2]);
+		}
+	}
+	else
+	{
+		wait(&status);
+
+		if (WIFEXITED(status) != 0)
+		{
+			MY_PRINTF("родитель. ребенок завершился и вернул статус: %u\n", WEXITSTATUS(status));
+		}
+		else
+		{
+			MY_PRINTF("родитель. ребенок завершился с ошибкой и вернул статус: %u\n", WEXITSTATUS(status));
 		}
 	}
 	return 0;
